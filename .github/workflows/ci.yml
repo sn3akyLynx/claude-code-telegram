@@ -51,3 +51,19 @@ jobs:
 
       - name: Test
         run: make test
+
+  osv-scan:
+    name: OSV lockfile advisory report
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@32d3cd482bdadfb38b186c0ad1b031902d55d932 # v2.7.1
+    with:
+      # Report every known advisory in the committed lock; do not ignore or
+      # silently suppress deferred FastAPI/Starlette and SDK remediations.
+      scan-args: |-
+        --lockfile=poetry.lock
+      # Intentional residual advisories are tracked in the remediation record.
+      fail-on-vuln: false
+      upload-sarif: true
+    permissions:
+      actions: read
+      contents: read
+      security-events: write

@@ -4,6 +4,8 @@ import re
 import tomllib
 from pathlib import Path
 
+import yaml
+
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOWS = ROOT / ".github" / "workflows"
 
@@ -98,3 +100,31 @@ def test_repository_metadata_identifies_fork_and_credits_upstream() -> None:
         assert fork in document
         assert "github.com/RichardAtCT/claude-code-telegram" not in document
     assert upstream in (ROOT / "README.md").read_text(encoding="utf-8")
+
+
+def test_dependabot_covers_python_and_actions_without_auto_merge() -> None:
+    config_path = ROOT / ".github" / "dependabot.yml"
+    config_text = config_path.read_text(encoding="utf-8")
+    config = yaml.safe_load(config_text)
+
+    assert config["version"] == 2
+    updates = {update["package-ecosystem"]: update for update in config["updates"]}
+    assert {"pip", "github-actions"} <= updates.keys()
+    for ecosystem in ("pip", "github-actions"):
+        assert updates[ecosystem]["directory"] == "/"
+        assert updates[ecosystem]["schedule"]["interval"] == "weekly"
+    assert "auto-merge" not in config_text
+
+
+def test_ci_reports_all_lockfile_advisories_with_pinned_osv_scanner() -> None:
+    ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+
+    assert (
+        "uses: google/osv-scanner-action/.github/workflows/"
+        "osv-scanner-reusable.yml@"
+        "32d3cd482bdadfb38b186c0ad1b031902d55d932 # v2.7.1"
+    ) in ci
+    assert "--lockfile=poetry.lock" in ci
+    assert "fail-on-vuln: false" in ci
+    assert "osv-scanner-reusable-pr.yml" not in ci
+    assert "osv-scanner.toml" not in ci
