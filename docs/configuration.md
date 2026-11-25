@@ -230,18 +230,63 @@ DEVELOPMENT_MODE=false
 ENVIRONMENT=development
 ```
 
-#### Webhook (Telegram Polling vs Webhook)
+#### Telegram Delivery (Polling vs Webhook)
+
+Leave `WEBHOOK_URL` unset or empty to use Telegram polling. Polling is the default
+and does not require any of the webhook settings below.
+
+To enable Telegram webhook delivery instead, generate an independent random
+secret and configure the public HTTPS URL and local receiver:
 
 ```bash
-# Webhook URL for bot (leave empty for polling mode)
-WEBHOOK_URL=https://your-domain.com/webhook
-
-# Webhook port
+# Generate with: openssl rand -hex 32
+# Replace this placeholder with the command's output; do not use a static example.
+WEBHOOK_SECRET_TOKEN=<64-lowercase-hex-characters-from-the-command-above>
+WEBHOOK_URL=https://bot.example.com/webhook
+WEBHOOK_PATH=/webhook
 WEBHOOK_PORT=8443
 
-# Webhook path
-WEBHOOK_PATH=/webhook
+# Safe default: only a same-host reverse proxy can reach the receiver.
+WEBHOOK_LISTEN=127.0.0.1
+WEBHOOK_ALLOW_NON_LOOPBACK=false
 ```
+
+`WEBHOOK_SECRET_TOKEN` is mandatory in webhook mode. Startup fails closed if it
+is missing, blank, a common placeholder, shorter than 32 characters, or made of
+only one repeated character. Telegram permits 1-256 characters from `A-Z`,
+`a-z`, `0-9`, `_`, and `-`; this application additionally requires at least 32
+characters. The token is registered with Telegram and authenticated by the
+receiver through the `X-Telegram-Bot-Api-Secret-Token` request header.
+
+The built-in receiver speaks HTTP on `WEBHOOK_LISTEN:WEBHOOK_PORT`. Terminate
+TLS at a reverse proxy on the same host and proxy only the configured path to
+the loopback listener. For example, with the settings above, an HTTPS Nginx
+server can use:
+
+```nginx
+location /webhook {
+    proxy_pass http://127.0.0.1:8443;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto https;
+}
+```
+
+Do not expose port 8443 through the host firewall, and do not strip the
+Telegram secret header in the proxy. `WEBHOOK_URL` must be the public HTTPS URL
+whose path matches `WEBHOOK_PATH`.
+
+A non-loopback receiver is not required for a same-host proxy. If a deployment
+deliberately places the proxy elsewhere, the operator must explicitly set both
+`WEBHOOK_LISTEN` to the desired interface and
+`WEBHOOK_ALLOW_NON_LOOPBACK=true`, restrict that interface with firewall rules,
+and provide a trusted private transport plus public TLS termination.
+
+These `WEBHOOK_*` settings configure **only Telegram update delivery through
+python-telegram-bot**. They are independent of the excluded FastAPI/GitHub
+webhook surface: `ENABLE_API_SERVER`, `/webhooks/{provider}`,
+`GITHUB_WEBHOOK_SECRET`, and generic-provider `WEBHOOK_API_SECRET` do not enable
+or authenticate Telegram delivery, and Telegram delivery does not enable that
+separate server.
 
 ## Environment-Specific Configuration
 
@@ -325,6 +370,8 @@ The configuration system performs extensive validation:
 
 - `AUTH_TOKEN_SECRET` is required when `ENABLE_TOKEN_AUTH=true`
 - `MCP_CONFIG_PATH` is required when `ENABLE_MCP=true`
+- `WEBHOOK_SECRET_TOKEN` is required and must be random when `WEBHOOK_URL` is set
+- `WEBHOOK_ALLOW_NON_LOOPBACK=true` is required for a non-loopback Telegram listener
 
 ### Value Validation
 

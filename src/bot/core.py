@@ -179,10 +179,11 @@ class ClaudeCodeBot:
             if self.settings.webhook_url:
                 # Webhook mode
                 await self.app.run_webhook(
-                    listen="0.0.0.0",
+                    listen=self.settings.webhook_listen,
                     port=self.settings.webhook_port,
                     url_path=self.settings.webhook_path,
                     webhook_url=self.settings.webhook_url,
+                    secret_token=self.settings.webhook_secret_token_str,
                     drop_pending_updates=True,
                     allowed_updates=Update.ALL_TYPES,
                 )

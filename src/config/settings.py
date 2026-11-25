@@ -8,7 +8,9 @@ Features:
 - Environment-specific settings
 """
 
+import ipaddress
 import json
+import re
 from pathlib import Path
 from typing import Any, List, Literal, Optional
 
@@ -192,8 +194,18 @@ class Settings(BaseSettings):
 
     # Webhook settings (optional)
     webhook_url: Optional[str] = Field(None, description="Webhook URL for bot")
+    webhook_listen: str = Field(
+        "127.0.0.1", description="Host/interface for the Telegram webhook listener"
+    )
+    webhook_allow_non_loopback: bool = Field(
+        False,
+        description="Explicitly allow a non-loopback Telegram webhook listener",
+    )
     webhook_port: int = Field(8443, description="Webhook port")
     webhook_path: str = Field("/webhook", description="Webhook path")
+    webhook_secret_token: Optional[SecretStr] = Field(
+        None, description="Random secret used to authenticate Telegram webhook requests"
+    )
 
     # Agentic platform settings
     enable_api_server: bool = Field(False, description="Enable FastAPI webhook server")
@@ -361,6 +373,58 @@ class Settings(BaseSettings):
                 "auth_token_secret required when enable_token_auth is True"
             )
 
+        # Telegram webhook delivery must be authenticated before a listener starts.
+        if self.webhook_url:
+            secret = (
+                self.webhook_secret_token.get_secret_value()
+                if self.webhook_secret_token
+                else ""
+            )
+            if not secret:
+                raise ValueError(
+                    "WEBHOOK_SECRET_TOKEN is required when WEBHOOK_URL enables "
+                    "Telegram webhook mode; generate a random token"
+                )
+            placeholders = {
+                "changeme",
+                "change-me",
+                "default",
+                "password",
+                "secret",
+                "telegram-webhook-secret",
+                "token",
+                "webhook-secret",
+                "webhook_secret",
+                "your-secret",
+                "your_secret",
+                "your-webhook-secret",
+            }
+            if (
+                len(secret) < 32
+                or secret.strip().lower() in placeholders
+                or len(set(secret)) == 1
+            ):
+                raise ValueError(
+                    "WEBHOOK_SECRET_TOKEN must be a randomly generated token "
+                    "of at least 32 characters; static/default values are not allowed"
+                )
+
+            if len(secret) > 256 or re.fullmatch(r"[A-Za-z0-9_-]+", secret) is None:
+                raise ValueError(
+                    "WEBHOOK_SECRET_TOKEN must contain 1-256 characters using "
+                    "only A-Z, a-z, 0-9, _ and -"
+                )
+
+            try:
+                is_loopback = ipaddress.ip_address(self.webhook_listen).is_loopback
+            except ValueError:
+                is_loopback = self.webhook_listen.lower() == "localhost"
+            if not is_loopback and not self.webhook_allow_non_loopback:
+                raise ValueError(
+                    "WEBHOOK_ALLOW_NON_LOOPBACK=true is required when "
+                    "WEBHOOK_LISTEN is not a loopback address; use a TLS reverse proxy"
+                )
+
         # Check MCP requirements
         if self.enable_mcp and not self.mcp_config_path:
             raise ValueError("mcp_config_path required when enable_mcp is True")
@@ -398,6 +462,13 @@ class Settings(BaseSettings):
     def telegram_token_str(self) -> str:
         """Get Telegram token as string."""
         return self.telegram_bot_token.get_secret_value()
+
+    @property
+    def webhook_secret_token_str(self) -> Optional[str]:
+        """Get the Telegram webhook delivery secret as a string."""
+        if self.webhook_secret_token:
+            return self.webhook_secret_token.get_secret_value()
+        return None
 
     @property
     def auth_secret_str(self) -> Optional[str]:
