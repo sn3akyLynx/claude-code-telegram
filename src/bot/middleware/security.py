@@ -61,6 +61,26 @@ async def security_middleware(
             )
             return  # Block processing
 
+    # Callback data is command-like input in both classic and agentic modes.
+    callback_query = event.callback_query
+    if callback_query and callback_query.data:
+        is_safe, violation_type = await validate_message_content(
+            callback_query.data, security_validator, user_id, audit_logger
+        )
+        if not is_safe:
+            try:
+                await callback_query.answer(
+                    "🛡️ Security Alert\n\n"
+                    "This action contains potentially dangerous content and has been blocked.\n"
+                    f"Violation: {violation_type}",
+                    show_alert=True,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to send callback security alert", user_id=user_id
+                )
+            return  # Block processing even when notification fails
+
     # Validate file uploads if present
     if message and message.document:
         is_safe, error_message = await validate_file_upload(

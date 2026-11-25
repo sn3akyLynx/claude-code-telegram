@@ -195,13 +195,17 @@ APPROVED_DIRECTORY=/Users/yourname/projects
 
 #### User Access Control
 ```bash
-# Whitelist specific users (recommended)
+# Required: allow at least one specific Telegram user
 ALLOWED_USERS=123456789,987654321
 
-# Optional: Token-based authentication
+# Optional: Token-based authentication (does not replace ALLOWED_USERS)
 ENABLE_TOKEN_AUTH=true
 AUTH_TOKEN_SECRET=your-secret-key-here
 ```
+
+The bot refuses to start when `ALLOWED_USERS` is unset or empty. There is no
+allow-all fallback, including with `ENVIRONMENT=development` or
+`DEVELOPMENT_MODE=true`.
 
 ### Rate Limiting
 

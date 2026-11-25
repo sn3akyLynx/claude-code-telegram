@@ -3,6 +3,7 @@
 import os
 import tempfile
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from pydantic import ValidationError
@@ -10,6 +11,7 @@ from pydantic import ValidationError
 from src.config import Settings, create_test_config, load_config
 from src.config.features import FeatureFlags
 from src.exceptions import ConfigurationError
+from src.security.auth import WhitelistAuthProvider
 
 
 def test_settings_validation_required_fields(monkeypatch):
@@ -502,6 +504,7 @@ def test_environment_loading():
         os.environ["TELEGRAM_BOT_TOKEN"] = "test_token"
         os.environ["TELEGRAM_BOT_USERNAME"] = "test_bot"
         os.environ["APPROVED_DIRECTORY"] = tmp_dir
+        os.environ["ALLOWED_USERS"] = "123456789"
 
         try:
             config = load_config(env="development")
@@ -520,6 +523,7 @@ def test_environment_loading():
                 "TELEGRAM_BOT_TOKEN",
                 "TELEGRAM_BOT_USERNAME",
                 "APPROVED_DIRECTORY",
+                "ALLOWED_USERS",
             ]:
                 os.environ.pop(key, None)
 
@@ -562,3 +566,51 @@ def test_configuration_error_handling():
                 "APPROVED_DIRECTORY",
             ]:
                 os.environ.pop(key, None)
+
+
+@pytest.mark.parametrize("environment", ["development", "testing", "production"])
+@pytest.mark.parametrize("allowed_users", [None, ""])
+def test_load_config_rejects_missing_allowlist_in_every_environment(
+    monkeypatch, tmp_path, environment, allowed_users
+):
+    """Startup must fail closed for unset and explicitly empty allowlists."""
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test_token")
+    monkeypatch.setenv("TELEGRAM_BOT_USERNAME", "test_bot")
+    monkeypatch.setenv("APPROVED_DIRECTORY", str(tmp_path))
+    monkeypatch.setenv("DEVELOPMENT_MODE", "false")
+    if allowed_users is None:
+        monkeypatch.delenv("ALLOWED_USERS", raising=False)
+    else:
+        monkeypatch.setenv("ALLOWED_USERS", allowed_users)
+
+    with pytest.raises(ConfigurationError, match="ALLOWED_USERS"):
+        load_config(env=environment, config_file=tmp_path / "missing.env")
+
+
+@pytest.mark.parametrize("allowed_users", [None, []])
+async def test_create_application_rejects_empty_allowlist_before_startup(
+    monkeypatch, tmp_path, allowed_users
+):
+    """The application factory cannot bypass mandatory allowlist validation."""
+    from src.main import create_application
+
+    storage = MagicMock()
+    storage.initialize = AsyncMock()
+    monkeypatch.setattr("src.main.Storage", MagicMock(return_value=storage))
+    config = create_test_config(
+        approved_directory=str(tmp_path),
+        allowed_users=allowed_users,
+        development_mode=True,
+    )
+
+    with pytest.raises(ConfigurationError, match="ALLOWED_USERS"):
+        await create_application(config)
+
+    storage.initialize.assert_not_awaited()
+
+
+def test_whitelist_provider_has_no_development_allow_all_override():
+    """The auth provider exposes no switch that can bypass an empty allowlist."""
+    import inspect
+
+    assert "allow_all_dev" not in inspect.signature(WhitelistAuthProvider).parameters

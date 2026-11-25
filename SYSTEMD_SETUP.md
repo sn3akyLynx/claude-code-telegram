@@ -74,10 +74,10 @@ journalctl --user -u claude-telegram-bot -n 50 | grep -i "auth"
 
 # Should show:
 # "allowed_users": 1 (or more if multiple users configured)
-# "allow_all_dev": false
 ```
 
-If you see `allow_all_dev: true` or `environment: development`, **STOP THE SERVICE** and fix your `.env` file immediately.
+Startup fails if `ALLOWED_USERS` is unset or empty. Development mode cannot
+override this requirement or enable allow-all access.
 
 ## Common Commands
 

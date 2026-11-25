@@ -62,18 +62,16 @@ class AuthProvider(ABC):
 class WhitelistAuthProvider(AuthProvider):
     """Whitelist-based authentication."""
 
-    def __init__(self, allowed_users: List[int], allow_all_dev: bool = False):
+    def __init__(self, allowed_users: List[int]):
         self.allowed_users = set(allowed_users)
-        self.allow_all_dev = allow_all_dev
         logger.info(
             "Whitelist auth provider initialized",
             allowed_users=len(self.allowed_users),
-            allow_all_dev=allow_all_dev,
         )
 
     async def authenticate(self, user_id: int, credentials: Dict[str, Any]) -> bool:
         """Authenticate user against whitelist."""
-        is_allowed = self.allow_all_dev or user_id in self.allowed_users
+        is_allowed = user_id in self.allowed_users
         logger.info(
             "Whitelist authentication attempt", user_id=user_id, success=is_allowed
         )
@@ -81,10 +79,10 @@ class WhitelistAuthProvider(AuthProvider):
 
     async def get_user_info(self, user_id: int) -> Optional[Dict[str, Any]]:
         """Get user information if whitelisted."""
-        if self.allow_all_dev or user_id in self.allowed_users:
+        if user_id in self.allowed_users:
             return {
                 "user_id": user_id,
-                "auth_type": "whitelist" + ("_dev" if self.allow_all_dev else ""),
+                "auth_type": "whitelist",
                 "permissions": ["basic"],
             }
         return None

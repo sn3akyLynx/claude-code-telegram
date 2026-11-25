@@ -103,6 +103,12 @@ def _apply_environment_overrides(settings: Settings, env: Optional[str]) -> Sett
 
 def _validate_config(settings: Settings) -> None:
     """Perform additional runtime validation."""
+    if not settings.allowed_users:
+        raise InvalidConfigError(
+            "ALLOWED_USERS must contain at least one Telegram user ID; "
+            "empty or unset allowlists are not permitted in any environment"
+        )
+
     # Check file system permissions
     try:
         if not os.access(settings.approved_directory, os.R_OK | os.X_OK):

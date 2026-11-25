@@ -74,6 +74,10 @@ APPROVED_DIRECTORY=/Users/yourname/projects
 ALLOWED_USERS=123456789  # Your Telegram user ID
 ```
 
+At least one `ALLOWED_USERS` entry is required. The bot refuses to start with an
+unset or empty allowlist, including in development mode; there is no allow-all
+fallback.
+
 ### 4. Run
 
 ```bash

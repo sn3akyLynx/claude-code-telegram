@@ -12,12 +12,7 @@ from typing import Any, Callable, Dict, Optional
 
 import structlog
 from telegram import Update
-from telegram.ext import (
-    Application,
-    ContextTypes,
-    MessageHandler,
-    filters,
-)
+from telegram.ext import Application, ContextTypes, TypeHandler
 
 from ..config.settings import Settings
 from ..exceptions import ClaudeCodeTelegramError
@@ -101,25 +96,19 @@ class ClaudeCodeBot:
         # Middleware runs in order of group numbers (lower = earlier)
         # Security middleware first (validate inputs)
         self.app.add_handler(
-            MessageHandler(
-                filters.ALL, self._create_middleware_handler(security_middleware)
-            ),
+            TypeHandler(Update, self._create_middleware_handler(security_middleware)),
             group=-3,
         )
 
         # Authentication second
         self.app.add_handler(
-            MessageHandler(
-                filters.ALL, self._create_middleware_handler(auth_middleware)
-            ),
+            TypeHandler(Update, self._create_middleware_handler(auth_middleware)),
             group=-2,
         )
 
         # Rate limiting third
         self.app.add_handler(
-            MessageHandler(
-                filters.ALL, self._create_middleware_handler(rate_limit_middleware)
-            ),
+            TypeHandler(Update, self._create_middleware_handler(rate_limit_middleware)),
             group=-1,
         )
 
