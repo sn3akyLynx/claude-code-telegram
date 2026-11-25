@@ -17,7 +17,7 @@ This document provides detailed information for developers working on the Claude
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/RichardAtCT/claude-code-telegram.git
+   git clone https://github.com/sn3akyLynx/claude-code-telegram.git
    cd claude-code-telegram
    ```
 
@@ -394,11 +394,10 @@ make bump-major    # 1.2.0 -> 2.0.0
 
 1. Runs the full lint + test suite
 2. Creates a GitHub Release with auto-generated release notes
-3. Updates the rolling `latest` git tag (stable releases only)
 
 ### Pre-releases
 
-Tags containing `-rc`, `-beta`, or `-alpha` (e.g. `v1.3.0-rc1`) are marked as pre-releases on GitHub and do **not** update the `latest` tag.
+Tags containing `-rc`, `-beta`, or `-alpha` (e.g. `v1.3.0-rc1`) are marked as pre-releases on GitHub.
 
 ## Contributing
 

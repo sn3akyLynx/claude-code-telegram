@@ -46,22 +46,19 @@ Choose your preferred installation method:
 #### Option A: pip from a release tag
 
 ```bash
-# Specific version
-pip install git+https://github.com/RichardAtCT/claude-code-telegram@v1.2.0
-
-# Latest stable
-pip install git+https://github.com/RichardAtCT/claude-code-telegram@latest
+# Specific release (immutable tag)
+pip install git+https://github.com/sn3akyLynx/claude-code-telegram@v1.3.0
 ```
 
 #### Option B: From source (for development)
 
 ```bash
-git clone https://github.com/RichardAtCT/claude-code-telegram.git
+git clone https://github.com/sn3akyLynx/claude-code-telegram.git
 cd claude-code-telegram
 make dev
 ```
 
-> **Important:** Always install from a [tagged release](https://github.com/RichardAtCT/claude-code-telegram/releases), not `main`, for stability.
+> **Important:** Always install from a [tagged release](https://github.com/sn3akyLynx/claude-code-telegram/releases), not `main`, for stability.
 
 ### 4. Configure Environment
 
@@ -317,4 +314,4 @@ ENABLE_TELEMETRY=true
 - **Documentation**: Check the main [README.md](../README.md)
 - **Configuration**: See [configuration.md](configuration.md) for all options
 - **Security**: See [SECURITY.md](../SECURITY.md) for security concerns
-- **Issues**: [Open an issue](https://github.com/RichardAtCT/claude-code-telegram/issues)
+- **Issues**: [Open an issue](https://github.com/sn3akyLynx/claude-code-telegram/issues)

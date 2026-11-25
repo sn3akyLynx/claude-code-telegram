@@ -45,22 +45,19 @@ Choose your preferred method:
 #### Option A: pip install from a release tag
 
 ```bash
-# Install a specific version
-pip install git+https://github.com/RichardAtCT/claude-code-telegram@v1.2.0
-
-# Or always track the latest stable release
-pip install git+https://github.com/RichardAtCT/claude-code-telegram@latest
+# Install a specific release (immutable tag)
+pip install git+https://github.com/sn3akyLynx/claude-code-telegram@v1.3.0
 ```
 
 #### Option B: From source (for development)
 
 ```bash
-git clone https://github.com/RichardAtCT/claude-code-telegram.git
+git clone https://github.com/sn3akyLynx/claude-code-telegram.git
 cd claude-code-telegram
 make dev
 ```
 
-> **Note:** Always install from a tagged release (not `main`) for stability. See [Releases](https://github.com/RichardAtCT/claude-code-telegram/releases) for available versions.
+> **Note:** Always install from a tagged release (not `main`) for stability. See [Releases](https://github.com/sn3akyLynx/claude-code-telegram/releases) for available versions.
 
 ### 3. Configure
 
@@ -357,5 +354,6 @@ MIT License -- see [LICENSE](LICENSE).
 
 ## Acknowledgments
 
+- This fork is based on [overwirehq/claude-code-telegram](https://github.com/overwirehq/claude-code-telegram) and its contributors.
 - [Claude](https://claude.ai) by Anthropic
 - [python-telegram-bot](https://github.com/python-telegram-bot/python-telegram-bot)
