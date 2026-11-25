@@ -167,9 +167,61 @@ async def test_authorized_callback_runs_all_middleware_and_mode_handler(
         assert middleware_handler.type is Update
         assert middleware_handler.check_update(update)
     sensitive_handler.assert_awaited_once()
+    bot.deps["security_validator"].sanitize_command_input.assert_any_call(callback_data)
     bot.deps["rate_limiter"].check_rate_limit.assert_awaited_once_with(
         user_id=AUTHORIZED_USER_ID, cost=pytest.approx(0.0116), tokens=1
     )
+
+
+@pytest.mark.parametrize("agentic_mode", [False, True])
+async def test_malicious_callback_data_is_blocked_before_mode_handler(
+    telegram_app, monkeypatch, tmp_path, agentic_mode
+):
+    """Callback data crosses security validation in both operating modes."""
+    if agentic_mode:
+        sensitive_handler = AsyncMock()
+        monkeypatch.setattr(MessageOrchestrator, "_agentic_callback", sensitive_handler)
+    else:
+        from src.bot.handlers import callback
+
+        sensitive_handler = AsyncMock()
+        monkeypatch.setattr(callback, "handle_callback_query", sensitive_handler)
+
+    bot = configure_bot(telegram_app, tmp_path, agentic_mode)
+    update = make_callback_update(
+        telegram_app, AUTHORIZED_USER_ID, "cd:project; rm -rf /"
+    )
+
+    await telegram_app.process_update(update)
+
+    sensitive_handler.assert_not_awaited()
+    bot.deps["rate_limiter"].check_rate_limit.assert_not_awaited()
+    audit = bot.deps["audit_logger"].log_security_violation
+    audit.assert_awaited_once()
+    assert audit.await_args.kwargs["violation_type"] == "command_injection_attempt"
+
+
+async def test_callback_security_notification_failure_still_blocks_mode_handler(
+    telegram_app, monkeypatch, tmp_path
+):
+    """A Telegram notification error must not turn rejection into a bypass."""
+    from src.bot.handlers import callback
+
+    sensitive_handler = AsyncMock()
+    monkeypatch.setattr(callback, "handle_callback_query", sensitive_handler)
+    monkeypatch.setattr(
+        ExtBot,
+        "answer_callback_query",
+        AsyncMock(side_effect=RuntimeError("Telegram unavailable")),
+    )
+    configure_bot(telegram_app, tmp_path, agentic_mode=False)
+    update = make_callback_update(
+        telegram_app, AUTHORIZED_USER_ID, "cd:project; rm -rf /"
+    )
+
+    await telegram_app.process_update(update)
+
+    sensitive_handler.assert_not_awaited()
 
 
 async def test_unauthorized_non_message_update_never_reaches_custom_handler(
