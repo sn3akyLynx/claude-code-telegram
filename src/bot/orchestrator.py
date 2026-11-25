@@ -1082,6 +1082,24 @@ class MessageOrchestrator:
                 "Claude photo processing failed", error=str(e), user_id=user_id
             )
 
+    def _target_directory(self, target_name: str) -> Optional[Path]:
+        """Return an existing target directory, enforcing opt-in containment."""
+        target_path = self.settings.approved_directory / target_name
+        if not self.settings.restrict_working_directory:
+            return target_path if target_path.is_dir() else None
+
+        requested_path = Path(target_name)
+        if requested_path.is_absolute() or ".." in requested_path.parts:
+            return None
+        try:
+            base = self.settings.approved_directory.resolve()
+            target_path = target_path.resolve()
+        except (OSError, RuntimeError, ValueError):
+            return None
+        if not self._is_within(target_path, base):
+            return None
+        return target_path if target_path.is_dir() else None
+
     async def agentic_repo(
         self, update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> None:
@@ -1097,8 +1115,8 @@ class MessageOrchestrator:
         if args:
             # Switch to named repo
             target_name = args[0]
-            target_path = base / target_name
-            if not target_path.is_dir():
+            target_path = self._target_directory(target_name)
+            if target_path is None:
                 await update.message.reply_text(
                     f"Directory not found: <code>{escape_html(target_name)}</code>",
                     parse_mode="HTML",
@@ -1188,10 +1206,9 @@ class MessageOrchestrator:
         data = query.data
         _, project_name = data.split(":", 1)
 
-        base = self.settings.approved_directory
-        new_path = base / project_name
+        new_path = self._target_directory(project_name)
 
-        if not new_path.is_dir():
+        if new_path is None:
             await query.edit_message_text(
                 f"Directory not found: <code>{escape_html(project_name)}</code>",
                 parse_mode="HTML",
