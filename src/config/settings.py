@@ -60,6 +60,10 @@ class Settings(BaseSettings):
         False,
         description="Allow all Claude tools by bypassing tool validation checks",
     )
+    restrict_working_directory: bool = Field(
+        False,
+        description="Contain agentic working-directory selection to approved directory",
+    )
 
     # Claude settings
     claude_binary_path: Optional[str] = Field(

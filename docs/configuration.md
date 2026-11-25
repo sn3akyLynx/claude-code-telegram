@@ -61,6 +61,25 @@ DISABLE_SECURITY_PATTERNS=false
 DISABLE_TOOL_VALIDATION=false
 ```
 
+#### Working-Directory Containment
+
+```bash
+# Contain agentic /repo and cd: selection to APPROVED_DIRECTORY (default: false)
+RESTRICT_WORKING_DIRECTORY=false
+```
+
+When `RESTRICT_WORKING_DIRECTORY=true`, agentic `/repo <name>` commands and `cd:`
+callbacks accept only existing directories whose resolved paths are within
+`APPROVED_DIRECTORY`. Absolute paths, any `..` path component, parent-directory
+escapes, and symbolic-link escapes are rejected. Resolution also covers existing
+symlinks followed by non-existent path components, and path comparisons are
+component-aware so similarly prefixed sibling directories are not treated as
+children.
+
+The default `false` deliberately preserves the existing ability to select
+external directories through these agentic commands. This setting does not change
+classic-mode path validation, tool validation, or sandbox exclusions.
+
 #### Claude Configuration
 
 ```bash

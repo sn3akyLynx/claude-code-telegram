@@ -95,6 +95,24 @@ def test_security_relaxation_settings_defaults_and_overrides():
         assert overridden.disable_tool_validation is True
 
 
+def test_restrict_working_directory_defaults_false_and_can_be_enabled(tmp_path):
+    """Agentic directory containment is opt-in and configurable."""
+    defaults = Settings(
+        telegram_bot_token="test_token",
+        telegram_bot_username="test_bot",
+        approved_directory=tmp_path,
+    )
+    assert defaults.restrict_working_directory is False
+
+    restricted = Settings(
+        telegram_bot_token="test_token",
+        telegram_bot_username="test_bot",
+        approved_directory=tmp_path,
+        restrict_working_directory=True,
+    )
+    assert restricted.restrict_working_directory is True
+
+
 def test_approved_directory_validation_nonexistent():
     """Test validation fails for non-existent directory."""
     with pytest.raises(ValidationError) as exc_info:
