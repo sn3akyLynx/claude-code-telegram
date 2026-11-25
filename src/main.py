@@ -6,7 +6,7 @@ import logging
 import signal
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import structlog
 
@@ -30,6 +30,7 @@ from src.scheduler.scheduler import JobScheduler
 from src.security.audit import AuditLogger, InMemoryAuditStorage
 from src.security.auth import (
     AuthenticationManager,
+    AuthProvider,
     InMemoryTokenStorage,
     TokenAuthProvider,
     WhitelistAuthProvider,
@@ -95,6 +96,13 @@ def parse_args() -> argparse.Namespace:
 
 async def create_application(config: Settings) -> Dict[str, Any]:
     """Create and configure the application components."""
+    allowed_users = config.allowed_users
+    if not allowed_users:
+        raise ConfigurationError(
+            "ALLOWED_USERS must contain at least one Telegram user ID; "
+            "empty or unset allowlists are not permitted in any environment"
+        )
+
     logger = structlog.get_logger()
     logger.info("Creating application components")
 
@@ -104,27 +112,13 @@ async def create_application(config: Settings) -> Dict[str, Any]:
     storage = Storage(config.database_url)
     await storage.initialize()
 
-    # Create security components
-    providers = []
+    # Create security components. ALLOWED_USERS is mandatory even when token
+    # authentication is also enabled; token auth never creates an allow-all path.
+    providers: List[AuthProvider] = [WhitelistAuthProvider(allowed_users)]
 
-    # Add whitelist provider if users are configured
-    if config.allowed_users:
-        providers.append(WhitelistAuthProvider(config.allowed_users))
-
-    # Add token provider if enabled
     if config.enable_token_auth:
         token_storage = InMemoryTokenStorage()  # TODO: Use database storage
         providers.append(TokenAuthProvider(config.auth_token_secret, token_storage))
-
-    # Fall back to allowing all users in development mode
-    if not providers and config.development_mode:
-        logger.warning(
-            "No auth providers configured"
-            " - creating development-only allow-all provider"
-        )
-        providers.append(WhitelistAuthProvider([], allow_all_dev=True))
-    elif not providers:
-        raise ConfigurationError("No authentication providers configured")
 
     auth_manager = AuthenticationManager(providers)
     security_validator = SecurityValidator(

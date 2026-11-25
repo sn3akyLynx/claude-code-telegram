@@ -31,16 +31,19 @@ TELEGRAM_BOT_USERNAME=your_bot_name
 
 # Security
 APPROVED_DIRECTORY=/path/to/your/projects
+ALLOWED_USERS=123456789,987654321  # At least one Telegram user ID is required
 ```
+
+`ALLOWED_USERS` is mandatory and fail-closed. Startup aborts when it is unset,
+empty, or contains only separators. This applies to development, testing, and
+production; `DEVELOPMENT_MODE=true` never enables allow-all access. Token-based
+authentication can be enabled in addition to the allowlist, but cannot replace it.
 
 ### Optional Settings
 
 #### User Access Control
 
 ```bash
-# Comma-separated list of allowed Telegram user IDs
-ALLOWED_USERS=123456789,987654321
-
 # Enable token-based authentication (requires AUTH_TOKEN_SECRET)
 ENABLE_TOKEN_AUTH=false
 AUTH_TOKEN_SECRET=your-secret-key-here

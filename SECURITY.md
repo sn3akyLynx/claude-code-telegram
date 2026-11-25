@@ -65,10 +65,12 @@ All planned security features are implemented and active:
 # Base directory for all operations (CRITICAL)
 APPROVED_DIRECTORY=/path/to/approved/projects
 
-# User access control
-ALLOWED_USERS=123456789,987654321  # Telegram user IDs
+# User access control (required, at least one Telegram user ID)
+# Unset or empty ALLOWED_USERS aborts startup in every environment.
+# Development mode cannot enable allow-all access.
+ALLOWED_USERS=123456789,987654321
 
-# Optional: Token-based authentication
+# Optional: Token-based authentication (does not replace ALLOWED_USERS)
 ENABLE_TOKEN_AUTH=true
 AUTH_TOKEN_SECRET=your-secret-here  # Generate with: openssl rand -hex 32
 ```
